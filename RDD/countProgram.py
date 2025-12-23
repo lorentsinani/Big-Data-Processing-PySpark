@@ -1,0 +1,40 @@
+# Example 6: Create a Base RDD and Transform it (Final Boss)
+
+# Here are the brief steps for writing the word counting program:
+# Create a base RDD from Complete_Shakespeare.txt file.
+# Use RDD transformation to create a long list of words from each element of the base RDD.
+# Remove stop words from your data.
+# Create pair RDD where each element is a pair tuple of ('w', 1)
+# Group the elements of the pair RDD by key (word) and add up their values.
+# Swap the keys (word) and values (counts) so that keys is count and value is the word.
+# Finally, sort the RDD by descending order and print the 10 most frequent words and their frequencies.
+
+
+from pyspark.sql import SparkSession
+
+spark = SparkSession.builder \
+    .appName("Final Boss") \
+    .getOrCreate()
+
+sc = spark.sparkContext
+
+baseRDD = sc.textFile("Complete_Shakespeare.txt")
+splitRDD = baseRDD.flatMap(lambda x: x.split())
+
+print("Total number of words: ", splitRDD.count())
+
+stop_words = sc.textFile("stop_words.txt")
+splitRDD_no_stop = splitRDD.filter(lambda x: x.lower() not in stop_words)
+splitRDD_no_stop_words = splitRDD_no_stop.map(lambda w: (w, 1))
+resultRDD = splitRDD_no_stop_words.reduceByKey(lambda x, y: x + y)
+
+print(resultRDD.collect())
+
+for word in resultRDD.take(10):
+	print(word)
+
+resultRDD_swap = resultRDD.map(lambda x: (x[1], x[0]))
+resultRDD_swap_sort = resultRDD_swap.sortByKey(ascending=False)
+
+for word in resultRDD_swap_sort.take(10):
+	print("{},{}". format(word[1], word[0]))
